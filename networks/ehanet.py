@@ -284,8 +284,10 @@ class ResNet(nn.Module):
 
         # Segmentation 2
         seg2 = self.classifier2(merge)
-
-        return [[seg1, seg2], [edge]]
+        # Assuming seg1, seg2, and edge have the same shape
+        output = torch.cat([seg1, seg2, edge], dim=1)  # Concatenate along the channel dimension
+        return output
+        # return [[seg1, seg2], [edge]] # Multi branch
         # return seg1
 
 
