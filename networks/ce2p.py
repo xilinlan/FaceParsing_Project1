@@ -10,6 +10,8 @@ import torch
 
 from inplace_abn import InPlaceABN  # replace is ok!
 import functools
+
+
 BatchNorm2d = functools.partial(InPlaceABN, activation='identity')
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -292,7 +294,10 @@ class ResNet(nn.Module):
         x = torch.cat([x, edge_fea], dim=1)
         seg2 = self.layer7(x)
 
-        return [[seg1, seg2], [edge]]
+        # Assuming seg1, seg2, and edge have the same shape
+        output = torch.cat([seg1, seg2, edge], dim=1)  # Concatenate along the channel dimension
+        return output
+        # return [[seg1, seg2], [edge]]
 
 
 def CE2P(num_classes=19, url=None, pretrained=True):
