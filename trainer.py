@@ -102,7 +102,10 @@ class Trainer(object):
         progress_bar = tqdm(range(start, self.epochs), desc='Epoch-Check', mininterval=10, maxinterval=60, ncols=100)
         for epoch in progress_bar:
             self.G.train()
-            for i_iter, batch in tqdm(enumerate(self.data_loader), total=len(self.data_loader), desc='Iter/Batch', mininterval=5, maxinterval=10, ncols=100):
+            for i_iter, batch in enumerate(self.data_loader):
+                # 记录网络结构到tensorboard
+                if epoch == 0:
+                    self.writer.add_graph(self.G, batch[0].cuda())
                 i_iter += len(self.data_loader) * epoch
                 # lr = adjust_learning_rate(self.g_lr,
                 #                           self.g_optimizer, i_iter, self.total_iters)
@@ -151,39 +154,36 @@ class Trainer(object):
                         labels_predict, self.imsize)
                     save_image(denorm(labels_sample.data),
                                osp.join(self.sample_path, '{}_predict.png'.format(i_iter + 1)))
-
                 # 每隔100次迭代输出一次信息
                 if (i_iter + 1) % 100 == 0:
-                    estimated_total_time = 0
                     # 计算估计的训练时间
-                    elapsed_time = time.time() - start_time1  # 计算每100个iter耗费的时间
-                    estimated_time_per_iter = elapsed_time / 100  # 估计每个iter消耗的时间
-                    estimated_total_time = estimated_time_per_iter * self.total_iters  # 估计总时间
+                    # 计算每100个iter耗费的时间
+                    elapsed_time = time.time() - start_time1
+                    # 估计每个iter消耗的时间
+                    estimated_time_per_iter = elapsed_time / 100
+                    # 估计每个batch消耗的时间
+                    estimated_time_per_batch = estimated_time_per_iter /  len(self.data_loader)
+                    # 估计总时间
+                    estimated_total_time = estimated_time_per_iter * self.total_iters
                     # 秒转换为小时分钟秒
                     estimated_total_time = str(datetime.timedelta(seconds=int(estimated_total_time)))
-                    start_time1 = time.time()  # 重置开始时间
+                    # 重置开始时间
+                    start_time1 = time.time()
                     # 记录实际的训练时间
                     usetime = time.time() - start_time2
-                    # 更新进度条
-                    # progress_bar.set_postfix({
-                    #     'model': '{}'.format(self.arch),
-                    #     'epoch': '{}/{}'.format(epoch, self.epochs),
-                    #     'iter': '{}/{}'.format(i_iter, self.total_iters),
-                    #     'loss': '{}'.format(c_loss.data),
-                    #     'lr': '{}'.format(self.g_optimizer.param_groups[0]['lr']),
-                    #     'utime': '{:.4f}s'.format(elapsed_time),
-                    #     'etime': '{:.4f}s'.format(estimated_total_time)})
-                    # progress_bar.update()
-                    # 写入日志
-                    root_logger.info('Model {} - Epoch {}/{} - Iteration {}/{} - Loss {} - Lr {} Etime - {} Utime - {}'.format
+                    usetime = str(datetime.timedelta(seconds=int(usetime)))
+                    # 写入日志格式 - 模型名称 - 当前epoch/总epoch - 当前iter/总iter - 当前loss - 当前lr - 估计总时间 - 实际总时间 - Batch时间
+                    root_logger.info('Model {} - Epoch {}/{} - Iteration {}/{} - Loss {} - Lr {} Etime - {} Utime - {} Btime {}'.format
                                      (self.arch, epoch + 1, self.epochs, i_iter, self.total_iters, c_loss.data,
-                                      self.g_optimizer.param_groups[0]['lr'], estimated_total_time, usetime))
+                                      self.g_optimizer.param_groups[0]['lr'], estimated_total_time, usetime, estimated_time_per_batch))
                     # timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     # print('{} - epoch={}/{} iter={} of {} completed, loss={}'
                     #       .format(timestamp, epoch, self.epochs, i_iter,self.total_iters, c_loss.data))
 
             # 每个epoch结束后进行一次验证
             miou = self.verifier.validation(self.G)
+            # 记录miou到tensorboard
+            self.writer.add_scalar('miou', miou, epoch)
             if miou > best_miou:
                 best_miou = miou
                 torch.save(self.G.state_dict(), osp.join(
