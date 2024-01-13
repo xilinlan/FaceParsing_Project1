@@ -30,7 +30,7 @@ class Trainer(object):
         # Data loader
         self.data_loader = data_loader
         self.verifier = Verifier(val_loader, config)
-        self.writer = SummaryWriter('runs/training')
+        self.writer = SummaryWriter('runs/training/{}'.format(config.arch))
 
         # Model hyper-parameters
         self.imsize = config.imsize
