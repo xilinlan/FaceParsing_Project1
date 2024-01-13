@@ -21,16 +21,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 __BA__ = ["CE2P", "FaceParseNet18", "FaceParseNet34", "FaceParseNet50", "FaceParseNet"]
 
-# 配置日志
-logging.basicConfig(filename='training.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-# 创建一个StreamHandler，用于将日志输出到终端
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(console_formatter)
-# 获取根logger，并添加StreamHandler
-root_logger = logging.getLogger()
-root_logger.addHandler(console_handler)
 
 class Trainer(object):
     """Training pipline"""
@@ -82,6 +72,21 @@ class Trainer(object):
             warmup_method='linear')
 
     def train(self):
+        # Get current date and time
+        now = datetime.datetime.now()
+        # Format filename with current date and time
+        filename = 'training_{}.log'.format(now.strftime('%Y%m%d_%H-%M-%S'))
+        # Configure logging
+        logging.basicConfig(filename=filename, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        # 创建一个StreamHandler，用于将日志输出到终端
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(console_formatter)
+        # 获取根logger，并添加StreamHandler
+        root_logger = logging.getLogger()
+        root_logger.addHandler(console_handler)
+        root_logger.info("Start training...")
         # 记录开始训练时间
         start_time1 = time.time()
         start_time2 = time.time()

@@ -2,7 +2,7 @@ import os.path as osp
 import torch
 import timeit
 import numpy as np
-
+import datetime
 import torch.nn as nn
 import torch.nn.functional as F
 # from torchvision.utils import save_image
@@ -31,8 +31,7 @@ from metrics import SegMetric
 
 #     return images
 
-# 配置日志
-logging.basicConfig(filename='testing.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class Tester(object):
 
@@ -54,9 +53,26 @@ class Tester(object):
         self.build_model()
 
     def test(self):
-
+        # Get current date and time
+        now = datetime.datetime.now()
+        # Format filename with current date and time
+        filename = 'testing_{}.log'.format(now.strftime('%Y%m%d_%H-%M-%S'))
+        # Configure logging
+        logging.basicConfig(filename=filename, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        # 创建一个StreamHandler，用于将日志输出到终端
+        console_handler = logging.StreamHandler()
+        # 设置日志等级
+        console_handler.setLevel(logging.INFO)
+        # 设置日志格式
+        console_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(console_formatter)
+        # 获取根logger，并添加StreamHandler
+        root_logger = logging.getLogger()
+        root_logger.addHandler(console_handler)
+        root_logger.addHandler(console_handler)
+        root_logger.info("Start testing...")
+        # 记录开始测试时间
         time_meter = AverageMeter()
-
         # Model loading
         self.G.load_state_dict(torch.load(
             osp.join(self.model_save_path, self.arch, "{}_G.pth".format(self.pretrained_model))))
@@ -104,12 +120,14 @@ class Tester(object):
         # print("Inference time: {}fps".format(self.test_size / elapsed_time))
         print("Inference Time: {:.4f}s".format(
             time_meter.average() / images.size(0)))
-
+        root_logger.info("Inference Time: {:.4f}s".format(
+            time_meter.average() / images.size(0)))
         score = metrics.get_scores()[0]
         class_iou = metrics.get_scores()[1]
 
         for k, v in score.items():
             print(k, v)
+            root_logger.info('{}: {}'.format(k, v))
         print("=========================================")
         facial_names = ['background', 'skin', 'nose', 'eyeglass', 'left_eye', 'right_eye', 'left_brow', 'right_brow',
                         'left_ear',
@@ -117,6 +135,7 @@ class Tester(object):
                         'cloth']
         for i in range(self.classes):
             print(facial_names[i] + "\t: {}".format(str(class_iou[i])))
+            root_logger.info(facial_names[i] + "\t: {}".format(str(class_iou[i])))
 
     def build_model(self):
         self.G = get_model(self.arch, pretrained=False).cuda()
