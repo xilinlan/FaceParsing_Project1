@@ -8,6 +8,8 @@ import torch.nn.functional as F
 # from torchvision.utils import save_image
 # from torchvision import transforms
 
+from tqdm import tqdm
+import logging
 from networks import get_model
 from utils import *
 # from PIL import Image
@@ -29,6 +31,8 @@ from metrics import SegMetric
 
 #     return images
 
+# 配置日志
+logging.basicConfig(filename='testing.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Tester(object):
 
@@ -61,7 +65,7 @@ class Tester(object):
         metrics = SegMetric(n_classes=self.classes)
         metrics.reset()
 
-        # start_time = timeit.default_timer()
+        start_time = timeit.default_timer()
         for index, (images, labels) in enumerate(self.data_loader):
             if (index + 1) % 100 == 0:
                 print('%d processd' % (index + 1))
@@ -82,7 +86,10 @@ class Tester(object):
                 outputs = F.interpolate(outputs, (h, w), mode='bilinear', align_corners=True)
                 pred = outputs.data.max(1)[1].cpu().numpy()  # Matrix index
                 gt = labels.cpu().numpy()
-                # elapsed_time = timeit.default_timer() - start_time
+                elapsed_time = timeit.default_timer() - start_time
+                # 将信息写入日志文件
+                logging.info("Inference time (iter {0:5d}): {1:3.5f} fps".
+                             format(index + 1, pred.shape[0] / elapsed_time))
                 # print(
                 #     "Inference time \
                 #       (iter {0:5d}): {1:3.5f} fps".format(
@@ -93,7 +100,6 @@ class Tester(object):
 
             torch.cuda.synchronize()
             time_meter.update(time.perf_counter() - tic)
-
         # elapsed_time = timeit.default_timer() - start_time
         # print("Inference time: {}fps".format(self.test_size / elapsed_time))
         print("Inference Time: {:.4f}s".format(
@@ -104,7 +110,7 @@ class Tester(object):
 
         for k, v in score.items():
             print(k, v)
-
+        print("=========================================")
         facial_names = ['background', 'skin', 'nose', 'eyeglass', 'left_eye', 'right_eye', 'left_brow', 'right_brow',
                         'left_ear',
                         'right_ear', 'mouth', 'upper_lip', 'lower_lip', 'hair', 'hat', 'earring', 'necklace', 'neck',
