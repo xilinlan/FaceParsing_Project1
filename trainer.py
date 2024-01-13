@@ -75,7 +75,7 @@ class Trainer(object):
         # Get current date and time
         now = datetime.datetime.now()
         # Format filename with current date and time
-        filename = 'training_{}.log'.format(now.strftime('%Y%m%d_%H-%M-%S'))
+        filename = 'train{}_{}.log'.format(self.arch, now.strftime('%Y%m%d_%H-%M-%S'))
         # Configure logging
         logging.basicConfig(filename=filename, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         # 创建一个StreamHandler，用于将日志输出到终端
