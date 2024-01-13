@@ -4,7 +4,6 @@ import time
 import torch
 import datetime
 import logging
-import matplotlib.pyplot as plt
 import torch.nn as nn
 from torchvision.utils import save_image
 import numpy as np
@@ -160,7 +159,8 @@ class Trainer(object):
                     # 估计每个iter消耗的时间
                     estimated_time_per_iter = elapsed_time / 100
                     # 估计每个batch消耗的时间
-                    estimated_time_per_batch = estimated_time_per_iter /  len(self.data_loader)
+                    estimated_time_per_batch = estimated_time_per_iter * len(self.data_loader)
+                    estimated_time_per_batch = str(datetime.timedelta(seconds=int(estimated_time_per_batch)))
                     # 估计总时间
                     estimated_total_time = estimated_time_per_iter * self.total_iters
                     # 秒转换为小时分钟秒
