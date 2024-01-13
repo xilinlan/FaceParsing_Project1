@@ -69,11 +69,12 @@ class CelebAMaskHQ(Dataset):
 
 
 class CustomDataLoader:
-    def __init__(self, img_path, label_path, image_size, batch_size, transform=None, mode=True):
+    def __init__(self, img_path, label_path, image_size, batch_size, num_workers, transform=None, mode=True):
         self.img_path = img_path
         self.label_path = label_path
         self.imsize = image_size
         self.batch = batch_size
+        self.num_workers = num_workers
         self.mode = mode
         self.transform = transform
 
@@ -85,7 +86,7 @@ class CustomDataLoader:
             loader = torch.utils.data.DataLoader(dataset=dataset,
                                                  batch_size=self.batch,
                                                  shuffle=True,
-                                                 num_workers=4,
+                                                 num_workers=self.num_workers,
                                                  drop_last=True,
                                                  pin_memory=True)
             return loader
@@ -93,7 +94,7 @@ class CustomDataLoader:
         loader = torch.utils.data.DataLoader(dataset=dataset,
                                              batch_size=self.batch,
                                              shuffle=False,
-                                             num_workers=4,
+                                             num_workers=self.num_workers,
                                              drop_last=True,
                                              pin_memory=True)
         return loader
