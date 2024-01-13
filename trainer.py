@@ -105,8 +105,8 @@ class Trainer(object):
         for epoch in progress_bar:
             self.G.train()
             # 记录网络结构到tensorboard
-            if epoch == 0:
-                self.writer.add_graph(self.G, torch.rand(1, 3, 512, 512).cuda())
+            # if epoch == 0:
+            #     self.writer.add_graph(self.G, torch.rand(1, 3, 512, 512).cuda())
 
             for i_iter, batch in enumerate(self.data_loader):
                 i_iter += len(self.data_loader) * epoch
