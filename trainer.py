@@ -63,6 +63,7 @@ class Trainer(object):
             config.model_save_path, self.arch)
 
         if self.parallel:
+            os.environ["RANK"] = "0"  # 根据需要设置排名值
             # 创建一个进程组，包含所有进程
             dist.init_process_group(backend='nccl')
         self.build_model()
