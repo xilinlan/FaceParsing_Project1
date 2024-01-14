@@ -64,8 +64,19 @@ class Trainer(object):
 
         if self.parallel:
             os.environ["RANK"] = "0"  # 根据需要设置排名值
-            # 创建一个进程组，包含所有进程
-            dist.init_process_group(backend='nccl')
+            os.environ["WORLD_SIZE"] = self.num_workers  # 根据需要设置总进程数
+            os.environ["MASTER_ADDR"] = "localhost"
+            os.environ["MASTER_PORT"] = "12355"
+            # 初始化进程组
+            torch.distributed.init_process_group(backend='nccl', init_method='env://')
+            # 获取当前进程的排名
+            rank = torch.distributed.get_rank()
+            # 获取进程总数
+            world_size = torch.distributed.get_world_size()
+            # 设置GPU
+            torch.cuda.set_device(rank)
+            # 打印当前进程的排名和进程总数
+            print('rank:', rank, 'world_size:', world_size)
         self.build_model()
 
         # Start with trained model
