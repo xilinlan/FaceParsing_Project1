@@ -42,9 +42,21 @@ def check_keys(model, pretrained_state_dict):
     used_pretrained_keys = model_keys & ckpt_keys
     unused_pretrained_keys = ckpt_keys - model_keys
     missing_keys = model_keys - ckpt_keys
-    print('Missing keys:{}'.format(len(missing_keys)))
-    print('Unused checkpoint keys:{}'.format(len(unused_pretrained_keys)))
-    print('Used keys:{}'.format(len(used_pretrained_keys)))
+    # filter 'num_batches_tracked'
+    missing_keys = [x for x in missing_keys
+                    if not x.endswith('num_batches_tracked')]
+    if len(missing_keys) > 0:
+        print('[Warning] missing keys: {}'.format(missing_keys))
+        print('missing keys:{}'.format(len(missing_keys)))
+    if len(unused_pretrained_keys) > 0:
+        print('[Warning] unused_pretrained_keys: {}'.format(
+            unused_pretrained_keys))
+        print('unused checkpoint keys:{}'.format(
+            len(unused_pretrained_keys)))
+    print('used keys:{}'.format(len(used_pretrained_keys)))
+    # print('Missing keys:{}'.format(len(missing_keys)))
+    # print('Unused checkpoint keys:{}'.format(len(unused_pretrained_keys)))
+    # print('Used keys:{}'.format(len(used_pretrained_keys)))
     assert len(used_pretrained_keys) > 0, 'load NONE from pretrained checkpoint'
     return True
 
@@ -138,6 +150,13 @@ if __name__ == '__main__':
 
     # Segmentation model loading
     pretrained_path = args.pretrained_path
+    # 如果模型多了'module.'需要执行下面的命令，另存到新的模型中，另外需要注意的是torch.load()是打开一个预训练文件，不能是一个类对象
+    # model = load_model(model=EHANet18(), pretrained_path=pretrained_path, load_to_cpu=False)
+    # print("Model loaded successfully...")
+    # 保存model
+    # torch.save(model.state_dict(), "./segmentation/198_EHANet18_1.pth")
+    # print("Model saved successfully")
+    # exit()
     if args.cpu:
         device = 'cpu'
         pretrained_dict = torch.load(
