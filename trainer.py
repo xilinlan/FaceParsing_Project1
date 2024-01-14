@@ -8,6 +8,7 @@ import torch.nn as nn
 from torchvision.utils import save_image
 import numpy as np
 import torch.nn.functional as F
+import torch.distributed as dist
 
 from tqdm import tqdm
 from verifier import Verifier
@@ -61,6 +62,9 @@ class Trainer(object):
         self.model_save_path = osp.join(
             config.model_save_path, self.arch)
 
+        if self.parallel:
+            # 创建一个进程组，包含所有进程
+            dist.init_process_group(backend='nccl')
         self.build_model()
 
         # Start with trained model
@@ -97,13 +101,19 @@ class Trainer(object):
             start = 0
 
         criterion = CriterionAll()
-        criterion.cuda()
+        if self.parallel:
+            criterion = criterion.to(torch.device("cuda:{}".format(torch.distributed.get_rank())))
+        else:
+            criterion.cuda()
         best_miou = 0
 
         # Data iterator
         progress_bar = tqdm(range(start, self.epochs), desc='Epoch-Check', mininterval=10, maxinterval=60, ncols=100)
         for epoch in progress_bar:
             self.G.train()
+            # Initialize a new random number generator state
+            if self.parallel:
+                torch.manual_seed(torch.initial_seed())
             # 记录网络结构到tensorboard
             # if epoch == 0:
             #     self.writer.add_graph(self.G, torch.rand(1, 3, 512, 512).cuda())
@@ -115,11 +125,19 @@ class Trainer(object):
 
                 imgs, labels, edges = batch
                 size = labels.size()
-                imgs = imgs.cuda()
-                labels = labels.cuda()
+                if self.parallel:
+                    imgs = imgs.to(torch.device("cuda:{}".format(torch.distributed.get_rank())))
+                    labels = labels.to(torch.device("cuda:{}".format(torch.distributed.get_rank())))
+                else:
+                    imgs = imgs.cuda()
+                    labels = labels.cuda()
+
 
                 if self.arch in __BA__:
-                    edges = edges.cuda()
+                    if self.parallel:
+                        edges = edges.to(torch.device("cuda:{}".format(torch.distributed.get_rank())))
+                    else:
+                        edges = edges.cuda()
                     preds = self.G(imgs)
                     c_loss = criterion(preds, [labels, edges])
 
@@ -127,7 +145,11 @@ class Trainer(object):
                     labels_predict = preds[0][-1]
 
                 else:
-                    labels = labels.cuda()
+                    if self.parallel:
+                        labels = labels.to(torch.device("cuda:{}".format(torch.distributed.get_rank())))
+                    else:
+                        labels = labels.cuda()
+
                     # oneHot_size = (size[0], self.classes, size[1], size[2])
                     # labels_real = torch.cuda.FloatTensor(
                     #     torch.Size(oneHot_size)).zero_()
@@ -186,6 +208,10 @@ class Trainer(object):
 
             # 每个epoch结束后进行一次验证
             miou = self.verifier.validation(self.G)
+            if self.parallel:
+                # 显式同步所有进程，保证所有进程都能够进行验证
+                torch.distributed.barrier()
+
             # 记录miou到tensorboard
             self.writer.add_scalar('miou', miou, epoch)
             if miou > best_miou:
@@ -201,12 +227,27 @@ class Trainer(object):
         resnet101Url="https://download.pytorch.org/models/resnet101-5d3b4d8f.pth"
         resnet152Url="https://download.pytorch.org/models/resnet152-b121ed2d.pth"
         if self.arch == "CE2P":
-            self.G = get_model(self.arch, url=resnet101Url, pretrained=self.indicator).cuda()
+            if self.parallel:
+                self.G = get_model(self.arch, pretrained=self.indicator).to(torch.device("cuda:{}".format(torch.distributed.get_rank())))
+            else:
+                self.G = get_model(self.arch, url=resnet101Url, pretrained=self.indicator).cuda()
         else:
-            self.G = get_model(self.arch, pretrained=self.indicator).cuda()
+            if self.parallel:
+                self.G = get_model(self.arch, pretrained=self.indicator).to(torch.device("cuda:{}".format(torch.distributed.get_rank())))
+            else:
+                self.G = get_model(self.arch, pretrained=self.indicator).cuda()
 
         if self.parallel:
-            self.G = nn.DataParallel(self.G)
+            # 普通多卡并行方式
+            # self.G = nn.DataParallel(self.G)
+            # 分布式多卡并行方式
+            # Determine the current device
+            device = torch.device("cuda:{}".format(torch.distributed.get_rank()))
+            # Move the model to the current device
+            self.G = self.G.to(device)
+            # Use DistributedDataParallel
+            self.G = nn.DistributedDataParallel(self.G, device_ids=[device])
+
         # Loss and optimizer
         self.g_optimizer = torch.optim.SGD(filter(
             lambda p: p.requires_grad, self.G.parameters()), self.g_lr, self.momentum, self.weight_decay)
