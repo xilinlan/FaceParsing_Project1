@@ -64,7 +64,7 @@ class Trainer(object):
 
         if self.parallel:
             os.environ["RANK"] = "0"  # 根据需要设置排名值
-            os.environ["WORLD_SIZE"] = self.num_workers  # 根据需要设置总进程数
+            os.environ["WORLD_SIZE"] = str(self.num_workers)  # 根据需要设置总进程数
             os.environ["MASTER_ADDR"] = "localhost"
             os.environ["MASTER_PORT"] = "12355"
             # 初始化进程组
