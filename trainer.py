@@ -62,6 +62,9 @@ class Trainer(object):
             config.model_save_path, self.arch)
 
         self.build_model()
+        # Add the model graph to TensorBoard
+        dummy_input = torch.zeros([1, 3, self.imsize, self.imsize]).cuda()
+        self.writer.add_graph(self.G, dummy_input)
 
         # Start with trained model
         if self.pretrained_model:
@@ -104,10 +107,6 @@ class Trainer(object):
         progress_bar = tqdm(range(start, self.epochs), desc='Epoch-Check', mininterval=10, maxinterval=60, ncols=100)
         for epoch in progress_bar:
             self.G.train()
-            # 记录网络结构到tensorboard
-            # if epoch == 0:
-            #     self.writer.add_graph(self.G, torch.rand(1, 3, 512, 512).cuda())
-
             for i_iter, batch in enumerate(self.data_loader):
                 i_iter += len(self.data_loader) * epoch
                 # lr = adjust_learning_rate(self.g_lr,
