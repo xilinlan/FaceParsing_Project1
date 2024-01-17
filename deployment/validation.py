@@ -121,8 +121,12 @@ def get_network(cfg, pretrained_path):
         net = UNet()
     elif cfg.network == 'FaceParseNet101':
         net = FaceParseNet101(pretrained=False)
+    elif cfg.network == 'FaceParseNet34':
+        net = FaceParseNet34(pretrained=False)
     elif cfg.network == 'DABNet':
         net = DABNet()
+    elif cfg.network == 'DFANet':
+        net = DFANet()
     elif cfg.network == 'CE2P':
         net = CE2P(pretrained=False)
     elif cfg.network == 'DFANet':
