@@ -11,7 +11,7 @@ def get_parameters():  # 定义一个函数，用于获取命令行参数
     # 添加一个命令行参数，名为'arch'，类型为字符串，必须是列表中的一个值，此参数是必需的
     parser.add_argument(
         '--arch', type=str, choices=['UNet', 'DFANet', 'DANet', 'DABNet', 'CE2P', 'FaceParseNet18',
-                                     'FaceParseNet34', "FaceParseNet50", "FaceParseNet101", "EHANet18"], required=True)
+                                     'FaceParseNet34', "FaceParseNet50", "FaceParseNet101", "EHANet18", "EHAwithDDGCNet"], required=True)
 
     # 添加一些命令行参数，用于设置训练过程
     parser.add_argument('--epochs', type=int, default=200,
@@ -30,6 +30,9 @@ def get_parameters():  # 定义一个函数，用于获取命令行参数
     # 添加一些其他的命令行参数
     parser.add_argument('--train', type=str2bool, default=True)  # 是否进行训练
     parser.add_argument('--parallel', type=str2bool, default=False)  # 是否并行处理
+
+    #添加参数用于选择数据集
+    parser.add_argument('--dataset', type=str, default='celeba')  # 数据集名称
 
     # 添加一些命令行参数，用于设置路径
     parser.add_argument('--img_path', type=str,
