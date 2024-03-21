@@ -13,7 +13,7 @@ def make_folder(path, version):
 
 
 def denorm(x):
-    return x.clamp_(0, 1)
+    return x.clamp_(0, 1) # 作用是将数据映射到[0, 1]之间
 
 
 def uint82bin(n, count=8):

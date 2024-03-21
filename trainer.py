@@ -151,8 +151,12 @@ class Trainer(object):
                 if (i_iter + 1) % self.sample_step == 0:
                     labels_sample = generate_label(
                         labels_predict, self.imsize)
+                    # 保存预测的图片
                     save_image(denorm(labels_sample.data),
                                osp.join(self.sample_path, '{}_predict.png'.format(i_iter + 1)))
+                    # 保存真实的图片
+                    save_image(denorm(labels.data),
+                               osp.join(self.sample_path, '{}_real.png'.format(i_iter + 1)))
                 # 每隔100次迭代输出一次信息
                 if (i_iter + 1) % 100 == 0:
                     # 计算估计的训练时间
